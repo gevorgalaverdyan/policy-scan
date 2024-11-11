@@ -1,6 +1,6 @@
 curl https://api.groq.com/openai/v1/chat/completions -s \
 -H "Content-Type: application/json" \
--H "Authorization: Bearer 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" \
+-H "Authorization: Bearer $YOURAPIKEY" \
 -d '{
 "model": "llama3-8b-8192",
 "messages": [{

@@ -24,26 +24,44 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 
-// Mock function to simulate scanning process
 const scanPrivacyPolicy = async (policy: string) => {
   if (!policy) {
     alert("Please provide a privacy policy to scan.");
     return;
   }
 
-  await new Promise((resolve) => setTimeout(resolve, 3000)); // Simulate 3 second delay
-  return (
-    "This privacy policy outlines the data collection practices of the website. Key points include:\n\n" +
-    "1. Personal information collected: email, name, and browsing history\n" +
-    "2. Data used for: personalization and analytics\n" +
-    "3. Third-party sharing: limited to essential service providers\n" +
-    "4. User rights: can request data deletion and access\n" +
-    "5. Security measures: encryption and regular audits in place\n" +
-    "6. Policy updates: users notified via email of significant changes"
-  );
+  const url = "https://api.groq.com/openai/v1/chat/completions";
+  const headers = {
+    "Content-Type": "application/json",
+    Authorization:
+      "Bearer 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",
+  };
+
+  const body = JSON.stringify({
+    model: "llama3-8b-8192",
+    messages: [
+      {
+        role: "user",
+        content: `Summarize this privacy policy in text format, use good formatting: ${policy}`,
+      },
+    ],
+  });
+
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: headers,
+      body: body,
+    });
+
+    const data = await response.json();
+    return data.choices[0].message.content;
+  } catch (error) {
+    throw Error(`Error fetching data: ${error}`);
+  }
 };
 
-export default function PrivacyPolicyScanner() {
+export default function Component() {
   const [isScanning, setIsScanning] = useState(false);
   const [summary, setSummary] = useState<string | null>(null);
   const [showManualInput, setShowManualInput] = useState(false);
