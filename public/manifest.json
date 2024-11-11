@@ -1,0 +1,14 @@
+{
+  "manifest_version": 3,
+  "name": "Policy Scan",
+  "version": "1.0.0",
+  "description": "Policy scanner",
+  "action": {
+    "default_popup": "index.html"
+  },
+  "permissions": ["storage"],
+  "host_permissions": ["http://*/*", "https://*/*"],
+  "icons": {
+    "32": "vite.svg"
+  }
+}
