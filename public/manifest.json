@@ -9,6 +9,6 @@
   "permissions": ["storage"],
   "host_permissions": ["http://*/*", "https://*/*"],
   "icons": {
-    "32": "vite.svg"
+    "32": "policy.png"
   }
 }
