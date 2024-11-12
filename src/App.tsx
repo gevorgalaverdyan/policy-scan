@@ -39,14 +39,14 @@ const scanPrivacyPolicy = async (policy: string) => {
       "Bearer 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",
   };
 
-  let draft = "lorem ipsum";
+  // let draft = "lorem ipsum";
 
   const body = JSON.stringify({
     model: "llama3-8b-8192",
     messages: [
       {
         role: "user",
-        content: `Summarize this privacy policy in text format, use good formatting: ${draft}`,
+        content: `Summarize this privacy policy in text format, use good formatting: ${policy}`,
       },
     ],
   });
