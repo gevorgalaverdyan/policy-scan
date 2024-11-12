@@ -1,3 +1,4 @@
+// Component.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -23,6 +24,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+// import useAppHook from "./app-hooks";
 
 const scanPrivacyPolicy = async (policy: string) => {
   if (!policy) {
@@ -34,15 +36,17 @@ const scanPrivacyPolicy = async (policy: string) => {
   const headers = {
     "Content-Type": "application/json",
     Authorization:
-      "Bearer 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",
+      "Bearer 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",
   };
+
+  let draft = "lorem ipsum";
 
   const body = JSON.stringify({
     model: "llama3-8b-8192",
     messages: [
       {
         role: "user",
-        content: `Summarize this privacy policy in text format, use good formatting: ${policy}`,
+        content: `Summarize this privacy policy in text format, use good formatting: ${draft}`,
       },
     ],
   });
@@ -55,13 +59,15 @@ const scanPrivacyPolicy = async (policy: string) => {
     });
 
     const data = await response.json();
+    alert(`Summary: ${JSON.stringify(data)}`);
     return data.choices[0].message.content;
   } catch (error) {
-    throw Error(`Error fetching data: ${error}`);
+    alert(`Error fetching data: ${error}`);
   }
 };
 
-export default function Component() {
+export default function App() {
+  // const { scanPrivacyPolicy } = useAppHook();
   const [isScanning, setIsScanning] = useState(false);
   const [summary, setSummary] = useState<string | null>(null);
   const [showManualInput, setShowManualInput] = useState(false);
@@ -76,19 +82,70 @@ export default function Component() {
     }
   }, [darkMode]);
 
-  const handleScan = async (policy?: string) => {
+  const handleScan = async () => {
     setIsScanning(true);
     setSummary(null);
+
     try {
-      const result = await scanPrivacyPolicy(policy || manualPolicy);
-      setSummary(result ?? "No policy summary available.");
+      // Await the result of chrome.tabs.query
+      const tabs = await chrome.tabs.query({
+        active: true,
+        currentWindow: true,
+      });
+
+      if (tabs.length > 0) {
+        const activeTab = tabs[0];
+
+        // Now execute the script on the active tab
+        const [result] = await chrome.scripting.executeScript({
+          target: { tabId: activeTab.id! },
+          func: getPrivacyPolicyText,
+        });
+
+        if (result) {
+          const policyText = result.result || "Privacy policy not found.";
+          const summary = await scanPrivacyPolicy(policyText);
+          alert(`Summary: ${summary}`);
+          setSummary(summary);
+        } else {
+          setSummary("Unable to fetch privacy policy.");
+        }
+      } else {
+        setSummary("No active tab found.");
+      }
     } catch (error) {
-      console.error("Error scanning privacy policy:", error);
+      alert(`Error scanning privacy policy: ${JSON.stringify(error)}`);
       setSummary("An error occurred while scanning the privacy policy.");
     } finally {
       setIsScanning(false);
     }
   };
+
+  function getPrivacyPolicyText(): string {
+    const possibleSelectors = [
+      "div",
+      "p",
+      "[class*='policy']",
+      "[id*='policy']",
+    ];
+    let policyText = "";
+
+    possibleSelectors.forEach((selector) => {
+      document.querySelectorAll(selector).forEach((element) => {
+        // Cast element to HTMLElement to access innerText
+        const htmlElement = element as HTMLElement;
+
+        if (
+          htmlElement.innerText?.toLowerCase().includes("policy") ||
+          htmlElement.innerText?.toLowerCase().includes("privacy")
+        ) {
+          policyText += htmlElement.innerText + "\n";
+        }
+      });
+    });
+
+    return policyText || "Privacy policy not found on this page.";
+  }
 
   const toggleManualInput = () => {
     setShowManualInput(!showManualInput);
@@ -192,7 +249,7 @@ export default function Component() {
                   className="min-h-[200px]"
                 />
                 <Button
-                  onClick={() => handleScan(manualPolicy)}
+                  onClick={() => handleScan()}
                   disabled={isScanning || !manualPolicy}
                   className="w-full"
                 >
