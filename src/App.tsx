@@ -11,10 +11,8 @@ import {
   CardFooter,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   AlertCircle,
-  CheckCircle2,
   ChevronDown,
   ChevronUp,
   Moon,
@@ -22,14 +20,13 @@ import {
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import { PolicyScanAnalysis } from "./components/chart/chart"; // Assuming your chart is in this path
+import { PolicyScanAnalysis, PolicyScanAnalysisProps } from "./components/chart/chart";
 import input from "./input";
 
 const scanPrivacyPolicy = async (policy: string) => {
   if (!policy) {
     alert("Please provide a privacy policy to scan.");
-    return;
+    return null;
   }
 
   const url = "https://api.groq.com/openai/v1/chat/completions";
@@ -52,65 +49,64 @@ const scanPrivacyPolicy = async (policy: string) => {
   try {
     const response = await fetch(url, {
       method: "POST",
-      headers: headers,
-      body: body,
+      headers,
+      body,
     });
 
+    if (!response.ok) {
+      throw new Error(`HTTP error! Status: ${response.status}`);
+    }
+
     const data = await response.json();
-    alert(`Summary: ${JSON.stringify(data)}`);
-    return data.choices[0].message.content;
-  } catch (error) {
-    alert(`Error fetching data: ${error}`);
+    // alert(JSON.stringify(data, null, 2));
+    const sco = JSON.parse(data.choices[0].message.content) as PolicyScanAnalysisProps;
+
+    return sco;
+  } catch (error:any) {
+    alert(`Error fetching data: ${error.message}`);
+    return null;
   }
 };
 
 export default function App() {
   const [isScanning, setIsScanning] = useState(false);
-  const [summary, setSummary] = useState<string | null>(null);
+  const [summary, setSummary] = useState<PolicyScanAnalysisProps | null>(null);
   const [showManualInput, setShowManualInput] = useState(false);
   const [manualPolicy, setManualPolicy] = useState("");
   const [darkMode, setDarkMode] = useState(false);
 
   useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
+    document.documentElement.classList.toggle("dark", darkMode);
   }, [darkMode]);
 
-  const handleScan = async () => {
+  const handleScan = async (policyText: string | null = null) => {
     setIsScanning(true);
     setSummary(null);
 
     try {
-      const tabs = await chrome.tabs.query({
-        active: true,
-        currentWindow: true,
-      });
-
-      if (tabs.length > 0) {
-        const activeTab = tabs[0];
-
-        const [result] = await chrome.scripting.executeScript({
-          target: { tabId: activeTab.id! },
-          func: getPrivacyPolicyText,
+      if (!policyText) {
+        const tabs = await chrome.tabs.query({
+          active: true,
+          currentWindow: true,
         });
 
-        if (result) {
-          const policyText = result.result || "Privacy policy not found.";
-          const summary = await scanPrivacyPolicy(policyText);
-          alert(`Summary: ${summary}`);
-          setSummary(summary);
+        if (tabs.length > 0) {
+          const activeTab = tabs[0];
+          const [result] = await chrome.scripting.executeScript({
+            target: { tabId: activeTab.id! },
+            func: getPrivacyPolicyText,
+          });
+          policyText = result?.result || "Privacy policy not found.";
         } else {
-          setSummary("Unable to fetch privacy policy.");
+          alert("No active tab found.");
+          return;
         }
-      } else {
-        setSummary("No active tab found.");
       }
-    } catch (error) {
-      alert(`Error scanning privacy policy: ${JSON.stringify(error)}`);
-      setSummary("An error occurred while scanning the privacy policy.");
+
+      const summary = await scanPrivacyPolicy(policyText);
+      setSummary(summary);
+    } catch (error:any) {
+      alert(`Error scanning privacy policy: ${error.message}`);
     } finally {
       setIsScanning(false);
     }
@@ -128,7 +124,6 @@ export default function App() {
     possibleSelectors.forEach((selector) => {
       document.querySelectorAll(selector).forEach((element) => {
         const htmlElement = element as HTMLElement;
-
         if (
           htmlElement.innerText?.toLowerCase().includes("policy") ||
           htmlElement.innerText?.toLowerCase().includes("privacy")
@@ -141,19 +136,11 @@ export default function App() {
     return policyText || "Privacy policy not found on this page.";
   }
 
-  const toggleManualInput = () => {
-    setShowManualInput(!showManualInput);
-  };
-
-  const toggleDarkMode = () => {
-    setDarkMode(!darkMode);
-  };
-
   return (
     <div className={`min-h-screen ${darkMode ? "dark" : ""}`}>
-      <div className="container mx-auto py-8 transition-colors duration-200 dark:bg-gray-900">
+      <div className="container mx-auto p-1 transition-colors duration-200 dark:bg-gray-900">
         <Card className="w-full max-w-3xl mx-auto">
-          <CardHeader className="flex flex-row items-center justify-between">
+          <CardHeader className="flex justify-between">
             <div>
               <CardTitle className="text-2xl font-bold">
                 Privacy Policy Scanner
@@ -163,13 +150,10 @@ export default function App() {
               </CardDescription>
             </div>
             <div className="flex items-center space-x-2">
-              <Label htmlFor="dark-mode" className="sr-only">
-                Toggle dark mode
-              </Label>
               <Switch
                 id="dark-mode"
                 checked={darkMode}
-                onCheckedChange={toggleDarkMode}
+                onCheckedChange={() => setDarkMode((prev) => !prev)}
               />
               {darkMode ? (
                 <Moon className="h-4 w-4 text-gray-400" />
@@ -196,24 +180,8 @@ export default function App() {
             )}
 
             {summary && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                    <CheckCircle2 className="text-green-500" />
-                    Summary
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ScrollArea className="h-[300px] w-full rounded-md border p-4">
-                    <pre className="whitespace-pre-wrap font-mono text-sm">
-                      {summary}
-                    </pre>
-                  </ScrollArea>
-                </CardContent>
-              </Card>
+              <PolicyScanAnalysis {...summary} />
             )}
-
-            <PolicyScanAnalysis />
 
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <AlertCircle className="h-4 w-4" />
@@ -225,7 +193,7 @@ export default function App() {
           </CardContent>
           <CardFooter className="flex flex-col items-stretch gap-4">
             <Button
-              onClick={toggleManualInput}
+              onClick={() => setShowManualInput((prev) => !prev)}
               variant="outline"
               className="w-full"
             >
@@ -237,7 +205,7 @@ export default function App() {
               )}
             </Button>
             {showManualInput && (
-              <div className="space-y-4 w-full">
+              <div className="space-y-4">
                 <Textarea
                   placeholder="Paste privacy policy text here..."
                   value={manualPolicy}
@@ -245,7 +213,7 @@ export default function App() {
                   className="min-h-[200px]"
                 />
                 <Button
-                  onClick={() => handleScan()}
+                  onClick={() => handleScan(manualPolicy)}
                   disabled={isScanning || !manualPolicy}
                   className="w-full"
                 >
