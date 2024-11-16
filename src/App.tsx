@@ -1,4 +1,3 @@
-// Component.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -24,7 +23,8 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-// import useAppHook from "./app-hooks";
+import { PolicyScanAnalysis } from "./components/chart/chart"; // Assuming your chart is in this path
+import input from "./input";
 
 const scanPrivacyPolicy = async (policy: string) => {
   if (!policy) {
@@ -39,14 +39,12 @@ const scanPrivacyPolicy = async (policy: string) => {
       "Bearer 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",
   };
 
-  // let draft = "lorem ipsum";
-
   const body = JSON.stringify({
     model: "llama3-8b-8192",
     messages: [
       {
         role: "user",
-        content: `Summarize this privacy policy in text format, use good formatting: ${policy}`,
+        content: `${input} ${policy}`,
       },
     ],
   });
@@ -67,7 +65,6 @@ const scanPrivacyPolicy = async (policy: string) => {
 };
 
 export default function App() {
-  // const { scanPrivacyPolicy } = useAppHook();
   const [isScanning, setIsScanning] = useState(false);
   const [summary, setSummary] = useState<string | null>(null);
   const [showManualInput, setShowManualInput] = useState(false);
@@ -87,7 +84,6 @@ export default function App() {
     setSummary(null);
 
     try {
-      // Await the result of chrome.tabs.query
       const tabs = await chrome.tabs.query({
         active: true,
         currentWindow: true,
@@ -96,7 +92,6 @@ export default function App() {
       if (tabs.length > 0) {
         const activeTab = tabs[0];
 
-        // Now execute the script on the active tab
         const [result] = await chrome.scripting.executeScript({
           target: { tabId: activeTab.id! },
           func: getPrivacyPolicyText,
@@ -132,7 +127,6 @@ export default function App() {
 
     possibleSelectors.forEach((selector) => {
       document.querySelectorAll(selector).forEach((element) => {
-        // Cast element to HTMLElement to access innerText
         const htmlElement = element as HTMLElement;
 
         if (
@@ -218,6 +212,8 @@ export default function App() {
                 </CardContent>
               </Card>
             )}
+
+            <PolicyScanAnalysis />
 
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <AlertCircle className="h-4 w-4" />
