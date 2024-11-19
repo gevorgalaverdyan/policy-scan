@@ -11,16 +11,13 @@ import {
   CardFooter,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  AlertCircle,
-  ChevronDown,
-  ChevronUp,
-  Moon,
-  Sun,
-} from "lucide-react";
+import { AlertCircle, ChevronDown, ChevronUp, Moon, Sun } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { PolicyScanAnalysis, PolicyScanAnalysisProps } from "./components/chart/chart";
+import {
+  PolicyScanAnalysis,
+  PolicyScanAnalysisProps,
+} from "./components/chart/chart";
 import input from "./input";
 
 const scanPrivacyPolicy = async (policy: string) => {
@@ -28,6 +25,12 @@ const scanPrivacyPolicy = async (policy: string) => {
     alert("Please provide a privacy policy to scan.");
     return null;
   }
+
+  alert(policy);
+
+  const maxTextLength = 30000;
+  const truncatedPolicy =
+    policy.length > maxTextLength ? policy.substring(0, maxTextLength) : policy;
 
   const url = "https://api.groq.com/openai/v1/chat/completions";
   const headers = {
@@ -41,7 +44,7 @@ const scanPrivacyPolicy = async (policy: string) => {
     messages: [
       {
         role: "user",
-        content: `${input} ${policy}`,
+        content: `${input} ${truncatedPolicy}`,
       },
     ],
   });
@@ -58,11 +61,13 @@ const scanPrivacyPolicy = async (policy: string) => {
     }
 
     const data = await response.json();
-    // alert(JSON.stringify(data, null, 2));
-    const sco = JSON.parse(data.choices[0].message.content) as PolicyScanAnalysisProps;
+    
+    const sco = JSON.parse(
+      data.choices[0].message.content
+    ) as PolicyScanAnalysisProps;
 
     return sco;
-  } catch (error:any) {
+  } catch (error: any) {
     alert(`Error fetching data: ${error.message}`);
     return null;
   }
@@ -105,7 +110,7 @@ export default function App() {
 
       const summary = await scanPrivacyPolicy(policyText);
       setSummary(summary);
-    } catch (error:any) {
+    } catch (error: any) {
       alert(`Error scanning privacy policy: ${error.message}`);
     } finally {
       setIsScanning(false);
@@ -179,9 +184,7 @@ export default function App() {
               </div>
             )}
 
-            {summary && (
-              <PolicyScanAnalysis {...summary} />
-            )}
+            {summary && <PolicyScanAnalysis {...summary} />}
 
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <AlertCircle className="h-4 w-4" />
